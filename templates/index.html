@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        
+        <form action="/task" method="POST" class="task-form">
+            <input type="text" name="title" placeholder="Task title" required maxlength="15">
+            <input type="text" name="description" placeholder="Description" maxlength="28">
+            <button type="submit">Add Task</button>
+        </form>
+
+        <div class="filter-buttons">
+            <a href="/">All</a>
+            <a href="/completed">Completed</a>
+            <a href="/pending">Pending</a>
+        </div>
+
+        <ul class="task-list">
+            {% for task in tasks %}
+            <li class="task {% if task.done %}completed{% endif %}">
+                <span>{{ task.title }}</span>
+                <p>{{ task.description }}</p>
+                <form action="/task/{{ task.id }}/toggle" method="POST">
+                    <button type="submit">✔</button>
+                </form>
+                <button class="delete-btn" data-task-id="{{ task.id }}">🗑</button>
+            </li>
+            {% endfor %}
+        </ul>
+        
+    </div>
+
+    <script>
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                fetch(`/task/${taskId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(() => location.reload());
+            });
+        });
+    </script>
+</body>
+</html>
