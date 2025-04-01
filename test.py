@@ -11,6 +11,9 @@ def client():
 @pytest.fixture(autouse=True)
 def setup_db():
     database.init_db()
+    with database.get_db_connection() as conn:
+        conn.execute("DELETE FROM tasks")
+        conn.commit()
 
 def test_get_all_tasks(client):
     response = client.get("/tasks")
@@ -27,19 +30,26 @@ def test_create_task(client):
 
 def test_toggle_task(client):
     client.post("/task", data={"title": "Toggle Task", "description": "Test"})
-    
-    response = client.post("/task/1/toggle")
-    assert response.status_code == 302  
+    tasks = client.get("/tasks").json
+    task_id = tasks[0]['id']
 
-    response = client.get("/task/1")
-    assert response.json["done"] == 1
+    task = client.get(f"/task/{task_id}").json
+    assert task.get('done', 0) == 0
+
+    response = client.post(f"/task/{task_id}/toggle")
+    assert response.status_code == 302
+
+    task = client.get(f"/task/{task_id}").json
+    assert task.get('done', 1) == 1
 
 def test_delete_task(client):
     client.post("/task", data={"title": "To Delete", "description": "Test"})
     
-    response = client.delete("/task/1")
+    task_id = client.get("/tasks").json[0]['id']
+
+    response = client.delete(f"/task/{task_id}")
     assert response.status_code == 200
     assert response.json["message"] == "Task deleted"
-
-    response = client.get("/task/1")
+    
+    response = client.get(f"/task/{task_id}")
     assert response.status_code == 404
